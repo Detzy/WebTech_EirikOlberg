@@ -8,11 +8,12 @@ import { UserHandler, User } from './users'
 let ejs = require('ejs');
 
 const dbUser: UserHandler = new UserHandler('./db/users')
-const authRouter = express.Router()
 const dbMet: MetricsHandler = new MetricsHandler('./db/metrics')
-const LevelStore = levelSession(session)
 
 const app = express()
+const LevelStore = levelSession(session)
+const authRouter = express.Router()
+const userRouter = express.Router()
 
 const port: string = process.env.PORT || '8080'
 
@@ -24,14 +25,14 @@ app.use(session({
     saveUninitialized: true
 }))
 
-
-/* Metrics */
+app.use('/user', userRouter)
 app.use(express.static(path.join(__dirname, '/public')))
 app.use(bodyparser.json())
 app.use(bodyparser.urlencoded())
 app.set('views', __dirname + "/views")
 app.set('view engine', 'ejs');
 
+/* Metrics */
 
 app.get('/', (req: any, res: any) => {
   res.write('Hello world')
@@ -105,10 +106,29 @@ authRouter.get('/logout', (req: any, res: any) => {
     res.redirect('/login')
 })
 
+app.post('/signup', (req: any, res: any, next: any) => {
+    dbUser.get(req.body.username, function (err: Error | null, result?: User) {
+        if (!err || result !== undefined) {
+            res.status(409).send("user already exists")
+        } else {
+            let newUser = new User(req.body.username, req.body.email, req.body.password, false);
+            dbUser.save(newUser, function (err: Error | null) {
+                if (err) next(err)
+                else {
+                    res.status(201); 
+                    res.redirect('/login');
+                }
+                // else res.status(201).send("user persisted")
+            })
+        }
+    })
+})
+
 app.post('/login', (req: any, res: any, next: any) => {
     dbUser.get(req.body.username, (err: Error | null, result?: User) => {
         if (err) next(err)
         if (result === undefined || !result.validatePassword(req.body.password)) {
+            console.log('Failed to log in, because result was undefined, or password was incorrect')
             res.redirect('/login')
         } else {
             req.session.loggedIn = true
@@ -118,8 +138,7 @@ app.post('/login', (req: any, res: any, next: any) => {
     })
 })
 
-
-const userRouter = express.Router()
+/* User creation? */
 
 userRouter.post('/', (req: any, res: any, next: any) => {
     dbUser.get(req.body.username, function (err: Error | null, result?: User) {
@@ -127,9 +146,7 @@ userRouter.post('/', (req: any, res: any, next: any) => {
             res.status(409).send("user already exists")
         } else {
             dbUser.save(req.body, function (err: Error | null) {
-
                 if (err) next(err)
-
                 else res.status(201).send("user persisted")
             })
         }
@@ -144,9 +161,9 @@ userRouter.get('/:username', (req: any, res: any, next: any) => {
     })
 })
 
-app.use('/user', userRouter)
 
-// }) //Dont know why this is here, but am scared to remove it
+
+// }) // <= Dont know why this is here, but am scared of removing it
 
 const authCheck = function (req: any, res: any, next: any) {
     if (req.session.loggedIn) {
