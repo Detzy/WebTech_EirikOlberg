@@ -41,7 +41,7 @@ app.get('/', (req: any, res: any) => {
 app.get(
     '/hello/:name',
     (req: any, res: any) => {
-        res.render('hello.ejs', {name: req.params.name})
+        res.render('index.ejs', {name: req.params.name})
     })
 
 app.get(
@@ -145,6 +145,7 @@ userRouter.get('/:username', (req: any, res: any, next: any) => {
 })
 
 app.use('/user', userRouter)
+
 // }) //Dont know why this is here, but am scared to remove it
 
 const authCheck = function (req: any, res: any, next: any) {

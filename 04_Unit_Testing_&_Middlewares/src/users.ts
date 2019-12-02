@@ -1,5 +1,7 @@
 import { LevelDB } from "./leveldb"
 import WriteStream from 'level-ws'
+var passwordHash = require('password-hash');
+
 
 
 export class UserHandler {
@@ -18,13 +20,17 @@ export class UserHandler {
     }
 
     public save(user: User, callback: (err: Error | null) => void) {
+        // Takes a user, then adds user to database with username as key, then "password":"email" as value
         this.db.put(`user:${user.username}`, `${user.getPassword}:${user.email}`, (err: Error | null) => {
             callback(err)
         })
     }
 
     public delete(username: string, callback: (err: Error | null) => void) {
-        // TODO
+        // Takes a username, and deletes user corresponding to the username from database
+        this.db.delete(`user:${username}`, (err: Error | null) => {
+            callback(err);
+        })
     }
 
 }
@@ -49,15 +55,17 @@ export class User {
     }
 
     public setPassword(toSet: string): void {
-        // Hash and set password
+        // Hashes input password, then 
+        this.password = passwordHash.generate(toSet);
     }
 
     public getPassword(): string {
-        return this.password
+        // returns the hashed password
+        return this.password;
     }
 
     public validatePassword(toValidate: String): boolean {
         // return comparison with hashed password
-        return true;
+        return passwordHash.verify(toValidate, this.password);
     }
 }
