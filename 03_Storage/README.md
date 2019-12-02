@@ -1,4 +1,4 @@
-"# 03_storage" 
+# 03_storage
 
 ## Contributors
 Eirik Solheim Ølberg
