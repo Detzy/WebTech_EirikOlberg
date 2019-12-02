@@ -25,7 +25,7 @@ export class Metric {
 
 // New handler from lab 3
 export class MetricsHandler {
-    private db: any
+    public db: any
 
     constructor(dbPath: string) {
         this.db = LevelDB.open(dbPath)
@@ -36,7 +36,7 @@ export class MetricsHandler {
         stream.on('error', callback)
         stream.on('close', callback)
         metrics.forEach((m: Metric) => {
-            stream.write({ key: `metric:${key}${m.timestamp}`, value: m.value })
+            stream.write({ key: `metric:${key}:${m.timestamp}`, value: m.value })
         })
         stream.end()
       }
@@ -46,7 +46,7 @@ export class MetricsHandler {
         const stream = this.db.createReadStream()
             .on('data', function (data) {
                 console.log(data.key, '=', data.value)
-                let timestamp: string = data.key.split(':')[1]
+                let timestamp: string = data.key.split(':')[2]
                 let metric: Metric = new Metric(timestamp, data.value)
                 metrics.push(metric)
             })
@@ -62,7 +62,33 @@ export class MetricsHandler {
             })
     }
 
-    public delete(key: number, callback: (error: Error | null) => void){
+
+    public getActualKey(key: string, callback: (error: Error | null, result: string) => void){
+        let actualKey = "Found no key";
+        const stream = this.db.createReadStream()
+            .on('data', function (data) {
+                console.log(data.key, '=', data.value)
+                let keyToCheck: string = data.key.split(':')[1]
+                console.log(key === keyToCheck)
+                if (key === keyToCheck) {
+                    actualKey = data.key;
+                };
+                console.log(actualKey);
+            })
+            .on('error', function (err) {
+                callback;
+            })
+            .on('close', function () {
+                console.log('Stream closed')
+            })
+            .on('end', function () {
+                console.log('Stream ended')
+                callback(null, actualKey);
+            })
+    }
+
+    public delete(key: string, callback: (error: Error | null) => void){        
+        
         let err = this.db.del(key, (err) => {
             if (err){
                 console.log('Oh my!', err)
@@ -72,15 +98,36 @@ export class MetricsHandler {
         callback(err)
     }
 
-    public getOne(key: number, callback: (error: Error | null, result: any) => void){
-        let returnData = this.db.db.get(key, function (err, value) {
-            if (err) {
-                if (err.notFound) {
-                    return callback(err, null)
-                }
-                return callback(err, null)
-            }
-            callback(null, value)
-        })
+    public getOne(key: string, callback: (error: Error | null, result: Metric) => void){
+        let returnMetric: Metric;
+        const stream = this.db.createReadStream()
+            .on('data', function (data) {
+                let keyToCheck: string = data.key.split(':')[1]
+                if (key === keyToCheck){
+                    returnMetric = new Metric(data.key.split(':')[2], data.value);
+                };
+            })
+            .on('error', function (err) {
+                callback;
+            })
+            .on('close', function () {
+                console.log('Stream closed')
+            })
+            .on('end', function () {
+                callback(null, returnMetric)
+                console.log(returnMetric)
+                console.log('Stream ended')
+            })
+        
+        // { key: `metric:${key}${m.timestamp}`, value: m.value }
+        // let returnData = this.db.get(key, function (err, value) {
+        //     if (err) {
+        //         if (err.notFound) {
+        //             return callback(err, null)
+        //         }
+        //         return callback(err, null)
+        //     }
+        //     callback(null, value)
+        // })
     }
 }
