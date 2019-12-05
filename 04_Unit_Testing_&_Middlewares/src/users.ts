@@ -3,7 +3,6 @@ import WriteStream from 'level-ws'
 const passwordHash = require('password-hash');
 
 
-
 export class UserHandler {
     public db: any
 
@@ -34,6 +33,25 @@ export class UserHandler {
         this.db.delete(`user:${username}`, (err: Error | null) => {
             callback(err);
         })
+    }
+
+    public getAllUsernames(callback: (error: Error | null, result: any) => void) {
+        let usernames: string[] = []
+        const stream = this.db.createReadStream()
+            .on('data', function (data) {
+                let username: string = data.key.split(':')[1];
+                usernames.push(username);
+            })
+            .on('error', function (err) {
+                callback(err, null);
+            })
+            .on('close', function () {
+                console.log('Stream closed')
+            })
+            .on('end', function () {
+                callback(null, usernames)
+                console.log('Stream ended')
+            })
     }
 
 }

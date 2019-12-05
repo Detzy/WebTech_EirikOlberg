@@ -89,7 +89,7 @@ app.post('/metrics/:id', (req: any, res: any) => {
     })
 })
 
-/* User authentication */
+/* User authentication and creation */
 app.use(authRouter)
 
 authRouter.get('/login', (req: any, res: any) => {
@@ -106,23 +106,6 @@ authRouter.get('/logout', (req: any, res: any) => {
     res.redirect('/login')
 })
 
-app.post('/signup', (req: any, res: any, next: any) => {
-    dbUser.get(req.body.username, function (err: Error | null, result?: User) {
-        if (!err || result !== undefined) {
-            res.status(409).send("user already exists")
-        } else {
-            let newUser = new User(req.body.username, req.body.email, req.body.password, false);
-            dbUser.save(newUser, function (err: Error | null) {
-                if (err) next(err)
-                else {
-                    res.status(201); 
-                    res.redirect('/login');
-                }
-                // else res.status(201).send("user persisted")
-            })
-        }
-    })
-})
 
 app.post('/login', (req: any, res: any, next: any) => {
     dbUser.get(req.body.username, (err: Error | null, result?: User) => {
@@ -138,7 +121,37 @@ app.post('/login', (req: any, res: any, next: any) => {
     })
 })
 
-/* User creation? */
+app.post('/signup', (req: any, res: any, next: any) => {
+    dbUser.get(req.body.username, function (err: Error | null, result?: User) {
+        if (!err || result !== undefined) {
+            res.status(409).send("user already exists")
+        } else {
+            let newUser = new User(req.body.username, req.body.email, req.body.password, false);
+            dbUser.save(newUser, function (err: Error | null) {
+                if (err) next(err)
+                else {
+                    res.status(201);
+                    res.redirect('/login');
+                }
+                // else res.status(201).send("user persisted")
+            })
+        }
+    })
+})
+
+
+app.get(
+    // This is mainly for testing purposes
+    '/login/allusers',
+    (req: any, res: any) => {
+        dbUser.getAllUsernames((err: Error | null, result: any) => {
+            if (err) throw err
+            res.status(200).send(result)
+        })
+    }
+)
+
+/* User stuff? */
 
 userRouter.post('/', (req: any, res: any, next: any) => {
     dbUser.get(req.body.username, function (err: Error | null, result?: User) {
